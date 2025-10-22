@@ -1,0 +1,78 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  AWS_REGION: eu-west-3
+  ECR_REPOSITORY: my-nextjs-app
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker image to AWS ECR
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write # Needed for AWS OIDC authentication
+
+    steps:
+      # 1️⃣ Checkout the repository
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2️⃣ Configure AWS credentials via OpenID Connect (OIDC)
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::009324476891:role/github-actions-ecr-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 3️⃣ Login to Amazon ECR
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4️⃣ Build the Docker image
+
+      - name: Build the Docker image
+        run: |
+          docker build -t $ECR_REPOSITORY:${{ env.IMAGE_TAG }} .
+
+      # 5️⃣ Tag the image with ECR URI
+
+      - name: Tag Docker image
+        run: |
+          ECR_URI=$(aws ecr describe-repositories --repository-names $ECR_REPOSITORY --query 'repositories[0].repositoryUri' --output text)
+          docker tag $ECR_REPOSITORY:${{ env.IMAGE_TAG }} $ECR_URI:${{ env.IMAGE_TAG }} 
+
+      # 6️⃣ Push to ECR
+
+      - name: Push Docker image to ECR
+        run: |
+          ECR_URI=$(aws ecr describe-repositories --repository-names $ECR_REPOSITORY --query 'repositories[0].repositoryUri' --output text)
+          docker push $ECR_URI:${{ env.IMAGE_TAG }}
+
+      # 7️⃣ Run tests
+
+      - name: Run Tests
+        run: |
+          npm ci
+          npm test
+
+      # 8️⃣ Trigger CD pipeline (ArgoCD)
+
+      - name: Trigger CD Workflow
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: H11iye/aws-gitops
+          event-type: trigger-argo-sync
+          client-payload: '{"image_tag": "${{ env.IMAGE_TAG }}"}'
