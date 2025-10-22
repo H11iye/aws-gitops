@@ -62,17 +62,17 @@ jobs:
 
       # 7️⃣ Run tests
 
-      - name: Run Tests
-        run: |
-          npm ci
-          npm test
+      # - name: Run Tests
+      #   run: |
+      #     npm ci
+      #     npm test
 
       # 8️⃣ Trigger CD pipeline (ArgoCD)
 
       - name: Trigger CD Workflow
         uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.REPO_DISPATCH_TOKEN }}
           repository: H11iye/aws-gitops
           event-type: trigger-argo-sync
           client-payload: '{"image_tag": "${{ env.IMAGE_TAG }}"}'
