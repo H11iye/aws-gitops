@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "jest"
   },
   "dependencies": {
     "@types/aws-sdk": "^0.0.42",
@@ -18,13 +19,22 @@
     "react-dom": "19.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^9",
     "eslint-config-next": "16.0.0",
+    "jest": "^30.2.0",
+    "jsdom": "^27.0.1",
     "tailwindcss": "^4.1.15",
-    "typescript": "^5"
+    "ts-jest": "^29.4.5",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }
