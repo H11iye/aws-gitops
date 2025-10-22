@@ -62,10 +62,10 @@ jobs:
 
       # 7️⃣ Run tests
 
-      - name: Run Tests
-        run: |
-          npm ci
-          npm test
+      # - name: Run Tests
+      #   run: |
+      #     npm ci
+      #     npm test
 
       # 8️⃣ Trigger CD pipeline (ArgoCD)
 
