@@ -1,0 +1,46 @@
+pycache/
+*.py[cod]
+*$py.class
+Virtual-env
+venv/
+.env
+.env.*
+IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+OS
+.DS_Store
+Thumbs.db
+Python packaging
+*.egg-info/
+dist/
+build/
+.wheel/
+Coverage
+htmlcov/
+.coverage
+*.cover
+MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+Node (if you ever add a front-end)
+node_modules/
+n8n uploads
+n8n/.n8n/
+Docker
+*.log
+
+# Terraform state files
+*.tfstate
+*.tfstate.backup
+
+# Crash log
+crash.log
+
+# Terraform working directory
+
+.terraform/
+.terraform.lock.hcl
