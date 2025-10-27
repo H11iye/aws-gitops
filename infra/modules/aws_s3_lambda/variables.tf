@@ -1,3 +1,9 @@
+terraform {
+  required_providers {
+    aws = {source = "hashicorp/aws", version = ">= 4.60"}
+  }
+}
+
 variable "region" {
   description = "AWS REgion to deploy"
   type = string
@@ -7,6 +13,7 @@ variable "region" {
 variable "environment" {
   description = "Environment name (dev|staging|prod)"
   type = string
+  default = "dev"
 }
 
 variable "project" {
@@ -23,6 +30,22 @@ variable "input_bucket_name" {
 variable "output_bucket_name" {
   description = "Name of the S3 output bucket"
   type = string
+}
+
+variable "enable_versioning" {
+  description = "Whether versioning should be enabled on the bucket"
+  type = bool
+  default = false
+}
+
+variable "lifecycle_rules" {
+  description = "Optional lifecycle rules (see README below)"
+  type = list(object({
+    id        = string
+    enabled   = bool
+    expiration = optional(object({ days = number }), null)
+  }))
+  default = []
 }
 
 variable "lambda_runtime" {
@@ -50,6 +73,7 @@ variable "lambda_source_code_hash" {
 }
 
 variable "lambda_timeout" {
+  description = "Lambda timeout (seconds)"
   type = number
   default = 30
 }
@@ -61,41 +85,19 @@ variable "prefix_filter" {
 }
 
 variable "suffix_filter" {
+  description = "S3 key suffix filter for notification"
   type = string
   default = ""
 }
 
 variable "extra_environment_vars" {
+  description = "Map of additional environment variables for lambda"
   type = map(string)
   default = {}
 }
 
-variable "enable_versioning" {
-  description = "Whether versioning should be enabled on the bucket"
+variable "lambda_ignore_changes" {
+  description = "If true, ignore environment changes in the lambda resource lifecycle"
   type = bool
-  default = true
-}
-
-variable "block_public_acls" {
-  description = "Whether to block public ACLs on the bucket"
-  type = bool
-  default = true
-}
-
-variable "block_public_policy" {
-    description = "Whether to block public bucket policies"
-    type = bool
-    default = true
-}
-
-variable "ignore_public_acls" {
-  description = "To restrict public buckets"
-  type = bool
-  default = true
-}
-
-variable "object_ownership" {
-  description = "Object ownership setting for the bucket"
-  type = string
-  default = "BucketOwnerEnforced"
+  default = false
 }
