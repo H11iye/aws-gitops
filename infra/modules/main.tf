@@ -200,7 +200,7 @@ resource "aws_eks_node_group" "main" {
 
 # ECR Repository
 data "aws_ecr_repository" "app" {
-  name = var.ecr_repository_name
+  name = "my-nextjs-app"
 }
 
 # EKS Authentication
