@@ -3,16 +3,16 @@ terraform {
 
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
       version = "~> 5.0"
     }
     kubernetes = {
-      source = "hashicorp/kubernetes"
-      version = "~> 2.23"
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.25"
     }
     helm = {
-      source = "hashicorp/helm"
-      version = "~> 2.11"
+      source  = "hashicorp/helm"
+      version = "~> 2.12"
     }
   }
 }
@@ -21,27 +21,18 @@ provider "aws" {
   region = var.region
 }
 
-
-# Kubernetes provider using EKS data
+# Kubernetes provider (connected to EKS)
 provider "kubernetes" {
   host                   = aws_eks_cluster.main.endpoint
   cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
   token                  = data.aws_eks_cluster_auth.main.token
 }
 
-# Helm provider referencing the same EKS cluster credentials
+# Helm provider — now references the Kubernetes provider directly
 provider "helm" {
-
-  ## OLD Version
-  # kubernetes {
-  #   host                   = aws_eks_cluster.main.endpoint
-  #   cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
-  #   token                  = data.aws_eks_cluster_auth.main.token
-  # }
-  kubernetes = {
-    host = aws_eks_cluster.main.endpoint
+  kubernetes {
+    host                   = aws_eks_cluster.main.endpoint
     cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
-    token = data.aws_eks_cluster_auth.main.token
+    token                  = data.aws_eks_cluster_auth.main.token
   }
-
 }

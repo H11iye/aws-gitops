@@ -23,11 +23,11 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# Public Subnets (2)
+# Public Subnets
 resource "aws_subnet" "public" {
   count                   = 2
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = format("10.0.%d.0/24", count.index + 1)
+  cidr_block              = "10.0.${count.index}.0/24"
   availability_zone       = data.aws_availability_zones.available.names[count.index]
   map_public_ip_on_launch = true
 
@@ -38,11 +38,11 @@ resource "aws_subnet" "public" {
   }
 }
 
-# Private Subnets (2)
+# Private Subnets
 resource "aws_subnet" "private" {
   count             = 2
   vpc_id            = aws_vpc.main.id
-  cidr_block        = format("10.0.%d.0/24", count.index + 11)
+  cidr_block        = "10.0.${count.index + 10}.0/24"
   availability_zone = data.aws_availability_zones.available.names[count.index]
 
   tags = {
@@ -52,7 +52,7 @@ resource "aws_subnet" "private" {
   }
 }
 
-# EIP for NAT
+# NAT Gateway
 resource "aws_eip" "nat" {
   domain = "vpc"
 
@@ -61,7 +61,6 @@ resource "aws_eip" "nat" {
   }
 }
 
-# NAT Gateway in first public subnet
 resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public[0].id
@@ -73,7 +72,7 @@ resource "aws_nat_gateway" "main" {
   depends_on = [aws_internet_gateway.main]
 }
 
-# Route Tables
+# Public & Private Route Tables
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
@@ -100,7 +99,6 @@ resource "aws_route_table" "private" {
   }
 }
 
-# Route table associations
 resource "aws_route_table_association" "public" {
   count          = 2
   subnet_id      = aws_subnet.public[count.index].id
@@ -113,10 +111,7 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
-####################################
-# IAM for EKS cluster and nodes
-####################################
-# EKS Cluster IAM Role
+# IAM Role for EKS Cluster
 resource "aws_iam_role" "eks_cluster" {
   name = "${var.cluster_name}-cluster-role"
 
@@ -137,13 +132,20 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   role       = aws_iam_role.eks_cluster.name
 }
 
-# AmazonEKSServicePolicy is commonly attached for control plane operations
-resource "aws_iam_role_policy_attachment" "eks_service_policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
-  role       = aws_iam_role.eks_cluster.name
+# EKS Cluster
+resource "aws_eks_cluster" "main" {
+  name     = var.cluster_name
+  role_arn = aws_iam_role.eks_cluster.arn
+  version  = var.kubernetes_version
+
+  vpc_config {
+    subnet_ids = concat(aws_subnet.private[*].id, aws_subnet.public[*].id)
+  }
+
+  depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy]
 }
 
-# EKS Node Group IAM Role
+# IAM Role for Node Group
 resource "aws_iam_role" "eks_nodes" {
   name = "${var.cluster_name}-node-role"
 
@@ -159,6 +161,7 @@ resource "aws_iam_role" "eks_nodes" {
   })
 }
 
+# Attach worker node policies
 resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
   role       = aws_iam_role.eks_nodes.name
@@ -174,23 +177,7 @@ resource "aws_iam_role_policy_attachment" "eks_container_registry_policy" {
   role       = aws_iam_role.eks_nodes.name
 }
 
-####################################
-# EKS Cluster
-####################################
-resource "aws_eks_cluster" "main" {
-  name     = var.cluster_name
-  role_arn = aws_iam_role.eks_cluster.arn
-  version  = var.kubernetes_version
-
-  vpc_config {
-    # provide both private and public subnets (control plane needs subnets)
-    subnet_ids = concat(aws_subnet.private[*].id, aws_subnet.public[*].id)
-  }
-
-  depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy, aws_iam_role_policy_attachment.eks_service_policy]
-}
-
-# EKS Node Group
+# Node Group
 resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${var.cluster_name}-nodes"
@@ -207,46 +194,36 @@ resource "aws_eks_node_group" "main" {
   depends_on = [
     aws_iam_role_policy_attachment.eks_worker_node_policy,
     aws_iam_role_policy_attachment.eks_cni_policy,
-    aws_iam_role_policy_attachment.eks_container_registry_policy,
-    aws_eks_cluster.main
+    aws_iam_role_policy_attachment.eks_container_registry_policy
   ]
 }
 
-####################################
-# ECR (kept here — optional)
-####################################
+# ECR Repository
 data "aws_ecr_repository" "app" {
-  name                 = var.ecr_repository_name
+  name = var.ecr_repository_name
 }
 
-####################################
-# Data needed for Kubernetes provider & Helm
-####################################
+# EKS Authentication
 data "aws_eks_cluster_auth" "main" {
   name = aws_eks_cluster.main.name
 }
 
-####################################
-# Kubernetes namespaces and ArgoCD helm release
-# Note: these resources use the kubernetes/helm providers configured above
-####################################
+# Kubernetes namespaces
 resource "kubernetes_namespace" "app" {
   metadata {
     name = var.app_namespace
   }
-
-  # do not require nodes; cluster endpoint must be ready
-  depends_on = [aws_eks_cluster.main]
+  depends_on = [aws_eks_node_group.main]
 }
 
 resource "kubernetes_namespace" "argocd" {
   metadata {
     name = "argocd"
   }
-
-  depends_on = [aws_eks_cluster.main]
+  depends_on = [aws_eks_node_group.main]
 }
 
+# Install ArgoCD via Helm
 resource "helm_release" "argocd" {
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
@@ -254,15 +231,10 @@ resource "helm_release" "argocd" {
   namespace  = kubernetes_namespace.argocd.metadata[0].name
   version    = "5.51.6"
 
-  ## OLD Version
-  # set {
-  #   name  = "server.service.type"
-  #   value = "LoadBalancer"
-  # }
-  set = [ {
-    name = "server.service.type"
+  set {
+    name  = "server.service.type"
     value = "LoadBalancer"
-  } ]
+  }
 
   depends_on = [kubernetes_namespace.argocd]
 }
