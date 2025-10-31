@@ -13,4 +13,4 @@ node_max_size       = 3
 
 # Application
 app_namespace       = "nextjs-app"
-ecr_repository_name = "nextjs-app"
+ecr_repository_name = "my-nextjs-app"

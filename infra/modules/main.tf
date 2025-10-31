@@ -132,6 +132,12 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   role       = aws_iam_role.eks_cluster.name
 }
 
+# Needed service policy for EKS control-plane
+resource "aws_iam_role_policy_attachment" "eks_service_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
+  role       = aws_iam_role.eks_cluster.name
+}
+
 # EKS Cluster
 resource "aws_eks_cluster" "main" {
   name     = var.cluster_name
@@ -142,7 +148,10 @@ resource "aws_eks_cluster" "main" {
     subnet_ids = concat(aws_subnet.private[*].id, aws_subnet.public[*].id)
   }
 
-  depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy]
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_cluster_policy,
+    aws_iam_role_policy_attachment.eks_service_policy
+  ]
 }
 
 # IAM Role for Node Group
@@ -191,16 +200,18 @@ resource "aws_eks_node_group" "main" {
     min_size     = var.node_min_size
   }
 
+  # Ensure node group is created after the cluster resource is fully ready
   depends_on = [
     aws_iam_role_policy_attachment.eks_worker_node_policy,
     aws_iam_role_policy_attachment.eks_cni_policy,
-    aws_iam_role_policy_attachment.eks_container_registry_policy
+    aws_iam_role_policy_attachment.eks_container_registry_policy,
+    aws_eks_cluster.main
   ]
 }
 
 # ECR Repository
 data "aws_ecr_repository" "app" {
-  name = "my-nextjs-app"
+  name = var.ecr_repository_name
 }
 
 # EKS Authentication
