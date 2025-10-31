@@ -73,9 +73,9 @@ jobs:
       contents: read
       id-token: write # Needed for AWS OIDC authentication
 
-    defaults:
-      run:
-        working-directory: app
+    # defaults:
+    #   run:
+    #     working-directory: app
     steps:
 
       - name: Checkout code
