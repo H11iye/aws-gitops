@@ -1,9 +1,9 @@
-🚀 AWS GitOps Project with Terraform, ArgoCD, and GitHub Actions
+# 🚀 AWS GitOps Project with Terraform, ArgoCD, and GitHub Actions
 
 This project implements a modern GitOps workflow on Amazon Web Services (AWS).
 It provisions an EKS (Elastic Kubernetes Service) cluster using Terraform, deploys applications using ArgoCD, and builds Docker images via a GitHub Actions CI/CD pipeline that authenticates to AWS via OIDC (OpenID Connect).
 
-🧩 Architecture Overview
+## 🧩 Architecture Overview
 
              ┌──────────────────────────────┐
              │        GitHub Actions         │
@@ -34,7 +34,7 @@ It provisions an EKS (Elastic Kubernetes Service) cluster using Terraform, deplo
                        │ (GitOps CD)    │
                        └────────────────┘
 
-⚙️ Features
+## ⚙️ Features
 
   ✅ Fully automated CI/CD pipeline using GitHub Actions.
   
@@ -48,7 +48,7 @@ It provisions an EKS (Elastic Kubernetes Service) cluster using Terraform, deplo
   
   ✅ Private and public subnets for production-ready networking.
 
-🧱 Project Structure
+## 🧱 Project Structure
 
     .
     ├── .github/workflows/
@@ -64,9 +64,9 @@ It provisions an EKS (Elastic Kubernetes Service) cluster using Terraform, deplo
     │   └── src/                  # Application code
     └── README.md
 
-🚀 Deployment Guide
+## 🚀 Deployment Guide
 
-1️⃣ Configure AWS and Terraform
+### 1️⃣ Configure AWS and Terraform
 
     aws configure
     terraform init
@@ -78,13 +78,13 @@ After apply completes, note the outputs:
     
   * cluster_endpoint
 
-2️⃣ Connect to the EKS Cluster
+### 2️⃣ Connect to the EKS Cluster
 
     aws eks update-kubeconfig --region <your-region> --name <your-cluster-name>
     kubectl get nodes
   ✅ You should now see your worker nodes listed.
 
-3️⃣ Access ArgoCD
+### 3️⃣ Access ArgoCD
 
   Retrieve the ArgoCD server URL and credentials:
 
@@ -96,9 +96,10 @@ After apply completes, note the outputs:
 
     https://<ARGOCD_LOADBALANCER_URL>
   Username: admin
+  
   Password: (output from above command)
 
-4️⃣ GitHub Actions CI/CD Setup
+### 4️⃣ GitHub Actions CI/CD Setup
 
   Your .github/workflows/ci-pipeline.yml handles:
 
@@ -114,7 +115,7 @@ After apply completes, note the outputs:
 
   * Repository secrets (if any) for dispatch tokens
 
-🔐 Security Best Practices
+## 🔐 Security Best Practices
 
   * Use OIDC authentication instead of long-lived IAM keys
 
@@ -128,7 +129,7 @@ After apply completes, note the outputs:
 
   * Use private subnets for worker nodes (only ALB public)
 
-🧠 Skills and Technologies Demonstrated
+## 🧠 Skills and Technologies Demonstrated
 
     | Area                       | Skill                                                    |
     | -------------------------- | -------------------------------------------------------- |
